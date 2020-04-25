@@ -12,7 +12,12 @@ In this section, each part of COSMOS which is mentioned in the previous section,
 
 ### Persistent Memory
 
-Persistent Memory or PMEM is a type of Non-Volatile memory (NVMem) which is directly connected to memory bus rather than PCI-e. PMEMs provide byte-addressability, persistence, and latency which is within an order of magnitude of DRAM\cite{dspm, empirical,snia}.
+Persistent Memory or PMEM is a type of Non-Volatile memory (NVMem) which is directly connected to memory bus rather than PCI-e. PMEMs provide byte-addressability, persistence, and latency which is within an order of magnitude of DRAM\cite{dspm, empirical,snia}.As shown in Figure\ref{figure:hierarchy}, PMEMs provide a new entry in the memory-storage hierarchy which fills the perfromance/capcacity gap\cite{pmem.io}.
+
+![picture](data/memorypyramid.png)
+
+With PMEMs, applications have a new tier available for data placement. In addition to the memory and storage tiers, the persistent memory tier offers greater capacity than DRAM and significantly faster performance than storage. Applications can access persistent memory like they do with traditional memory, eliminating the need to page blocks of data back and forth between memory and storage.
+PMEMs are built to work in two modes: Memory Mode where it acts exactly like DRAMs, and App Direct Mode where it plays the role of persistent memory. In App Direct Mode, software has a byte-addressable way to talk to the persistent memory capacity. In-memory databases restart time can also be significantly reduced because applications no longer have to reload data from storage to main memory, as they can access the persistent memory address space by using load/store accesses.
 
 With the emergence of Intel's Optane Dual Inline Memory Module (DIMM) which is the most recent commercially available PMEM on the market, researchers in \cite{empirical} explored properties and characteristics of the product at different levels. Optane memory has several features as below:
 \begin{itemize}
@@ -21,16 +26,21 @@ With the emergence of Intel's Optane Dual Inline Memory Module (DIMM) which is t
 \item Optane DIMMs operate in two modes: Memory, which CPU and OS simply see the DIMMs as a larger Volatile portion of main memory, and Direct mode, which behaves as a persistent memory.
 \item Optane DIMM is both persistent and byte-addressable. It means that it can fill the role of either a main memory or a persistent device(e.g. SSD).
 \end{itemize}
-
 Applications access the Optane DIMM's content using store instructions which are the extended instruction Set Architecture (ISA), and those stores will become persistent.
+PMEMs also introduce several new programming challenges such as:
+\begin{itemize}
+\item CPUs have out-of-order CPU execution and cache access/flushing.  This means if two values are stored by the application, the order in which they become persistent may not be the order that the application wrote them.
+\item If power outage happens during an aligned 8 bytes store to PMEM, either the old 8 bytes or the new one will be found in that location after reboot. In other words, 8 bytes stores are powerfail atomic.
+\item As anything larger than 8 bytes is not powerfail atomic, it is up to the software to implement whatever Transactions are required for consistency.
+\item Memory leaks to persistent storage are persistent.  Rebooting the server doesn't change the on-device contents.
+\item Since applications have direct access to the persistent memory media, any errors will be returned back to the application as memory errors. So, applications may need to detect and handle hardware errors directly.
+\end{itemize}
 
-Unfortunately, most persistent memories are designed for the single-node environment. Also in an empirical observation \cite{empirical} it is mentioned that the it is unclear scalable persistent memories will evolve. So, with modern datacenters applicatoins' computation scale, we have to be able to scale out persistent memory systems\cite{dspm}.
+According to Figure \ref{figure:hierarchy}, To get the low latency direct access, a new software architecture is required that allows applications to access ranges of persistent memory. The Persistent Memory Development Kit (PMDK) is a collection of libraries and tools for System Administrators and Application Developers to simplify managing and accessing persistent memory devices. The libraries are built on Direct Access (DAX) feature which allows applications to access persistent memory directly as memory-mapped file\cite{snia}. Support for this feature is what differentiates a normal file system from a persistent memory-aware file system. Figure \ref{figure:model} shows the model which describes how applications can access persistent memory devices (NVDIMMs) using traditional POSIX standard APIs such as read, write, pread, and pwrite, or load/store operations such as memcpy when the data is memory mapped to the application. For persistent memory, the APIs for memory mapping files are at the heart of the persistent memory programming model published by \cite{snia}. The 'Persistent Memory' area describes the fastest possible access because the application I/O bypasses existing filesystem page caches and goes directly to/from the persistent memory media.
 
+![picture](data/pmdkdiagram.png)
 
-
-Among available libraries in PMDK, there are two libraries which there is a need in implementing proposed system: libpmem and librp-mem. libpmem which is small and fairly simple, provides low level persistent memory support. The library also provides performance-tuned routines for copying ranges of persistence memory using the best instruction choices for the platform. librpmem provides low level support for for remote access to persistent memory using RDMA-capable RNICs. The library is capable of replicating a memory region remotely via RDMA protocol.
-
-
+Unfortunately, most persistent memories are designed for the single-node environment. Also in an empirical observation \cite{empirical} it is mentioned that the it is unclear scalable persistent memories will evolve. So, with modern datacenters applicatoins' computation scale, we have to be able to scale out persistent memory systems\cite{dspm} and hide background complexities from application developers by providing suitable abstractions.
 
 ### High-performance Networking
 
