@@ -32,3 +32,13 @@ According to Figure, To get the low latency direct access, a new software archit
 ![picture](data/pmdkdiagram.png)
 
 Unfortunately, most persistent memories are designed for the single-node environment. Also in an empirical observation it is mentioned that the it is unclear scalable persistent memories will evolve. So, with modern datacenters applicatoins' computation scale, we have to be able to scale out persistent memory systems and hide background complexities from application developers by providing suitable abstractions.
+
+
+## challenges
+
+While PMs offer exciting new possibilities, the following challenges, if not addressed, will hinder them from being widely adopted:
+
+* PM technologies are expected to be slower than DRAM [18], and will only be able to keep up with CPU speeds through techniques that exploit parallelism, batching, and reordering [9], all of which are possible only in the absence of persist dependencies. Mechanisms to reduce the cost of enforcing persist dependencies, and hence, improve the performance of recoverable data structures are necessary.
+
+* Writing correct parallel programs is hard. Ensuring recovery correctness requires programmers to reason about persist dependencies (via the memory persistency model) in addition to concurrency control mechanisms, exacerbating programming burden. Developing simple, precise, and high-performing programming abstractions to ease programming burden could go a long way towards increasing the adoption of persistent memories.
+ 
